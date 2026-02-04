@@ -1,0 +1,2850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudCFO – New User Onboarding Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c10;
+  --bg-card: #12151c;
+  --bg-card-hover: #181c26;
+  --bg-sidebar: #0d0f14;
+  --border: #1e2330;
+  --border-active: #3b82f6;
+  --text: #e2e8f0;
+  --text-dim: #8892a8;
+  --text-muted: #5a6478;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59,130,246,0.15);
+  --green: #10b981;
+  --green-bg: rgba(16,185,129,0.08);
+  --green-border: rgba(16,185,129,0.25);
+  --orange: #f59e0b;
+  --orange-bg: rgba(245,158,11,0.08);
+  --orange-border: rgba(245,158,11,0.25);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.08);
+  --red-border: rgba(239,68,68,0.25);
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.08);
+  --purple-border: rgba(168,85,247,0.25);
+  --cyan: #06b6d4;
+  --cyan-bg: rgba(6,182,212,0.08);
+  --radius: 10px;
+  --radius-lg: 16px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Fraunces', serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+  overflow-x: hidden;
+}
+
+/* ─── TOOLBAR ─── */
+.toolbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  background: rgba(10,12,16,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  z-index: 1000;
+  gap: 16px;
+}
+.hamburger {
+  width: 40px; height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.hamburger:hover {
+  background: var(--bg-card);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.toolbar-title {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.toolbar-title span { color: var(--accent); }
+.toolbar-badge {
+  font-size: 11px;
+  font-family: var(--mono);
+  background: var(--accent-glow);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(59,130,246,0.2);
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1001;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+.sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 340px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  z-index: 1002;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar.active {
+  transform: translateX(0);
+}
+.sidebar-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.sidebar-header h2 {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+}
+.sidebar-close {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.sidebar-close:hover {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red);
+}
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.nav-group {
+  margin-bottom: 4px;
+}
+.nav-group-label {
+  padding: 8px 24px 4px;
+  font-size: 10px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 24px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 13.5px;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+.nav-item:hover {
+  background: var(--bg-card);
+  color: var(--text);
+}
+.nav-item.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-item .nav-icon {
+  width: 22px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.nav-item .nav-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.nav-item .nav-dot.green { background: var(--green); }
+.nav-item .nav-dot.orange { background: var(--orange); }
+.nav-item .nav-dot.red { background: var(--red); }
+.nav-item .nav-dot.purple { background: var(--purple); }
+
+/* Nav hierarchy */
+.nav-item.nav-parent {
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 6px;
+}
+.nav-item.nav-child {
+  padding-left: 44px;
+  font-size: 12.5px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  opacity: 0.85;
+}
+.nav-item.nav-child::before {
+  content: '';
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  width: 6px;
+  height: 1px;
+  background: var(--border);
+}
+.nav-item.nav-child { position: relative; }
+.nav-item.nav-child.active { opacity: 1; }
+.nav-item.nav-layer .nav-icon {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border-radius: 4px;
+  padding: 1px 4px;
+  width: auto;
+}
+
+/* ─── COLLAPSIBLE CODE CARD ─── */
+.code-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.code-card-header {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+.code-card-header:hover { background: var(--bg-card-hover); }
+.code-card-header h4 {
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.code-card-header h4 .hicon {
+  font-size: 18px;
+}
+.code-card-header .badge { flex-shrink: 0; }
+.code-card-chevron {
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: transform 0.25s;
+  flex-shrink: 0;
+}
+.code-card.open .code-card-chevron { transform: rotate(180deg); }
+.code-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.code-card.open .code-card-body { max-height: 3000px; }
+.code-card-body > .code-block {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/* ─── MAIN CONTENT ─── */
+.main {
+  margin-top: 64px;
+  padding: 40px 32px 120px;
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ─── HERO ─── */
+.hero {
+  text-align: center;
+  padding: 48px 0 56px;
+}
+.hero-badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid rgba(59,130,246,0.2);
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-family: var(--display);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+.hero h1 span { color: var(--accent); }
+.hero p {
+  color: var(--text-dim);
+  font-size: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ─── SECTION ─── */
+.section {
+  margin-bottom: 56px;
+}
+.section-anchor {
+  display: block;
+  position: relative;
+  top: -80px;
+  visibility: hidden;
+}
+.section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.section h2 {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.section > p {
+  color: var(--text-dim);
+  margin-bottom: 24px;
+  font-size: 15px;
+}
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: #2a3040; }
+.card h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card h3 .emoji { font-size: 20px; }
+.card > p { color: var(--text-dim); margin-bottom: 16px; font-size: 14px; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* ─── STATUS BADGES ─── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.badge-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.badge-orange { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-border); }
+.badge-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.badge-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+.badge-blue { background: var(--accent-glow); color: var(--accent); border: 1px solid rgba(59,130,246,0.25); }
+
+/* ─── TABLES ─── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 16px 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+thead { background: rgba(30,35,48,0.6); }
+th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(59,130,246,0.03); }
+
+/* ─── FLOW DIAGRAMS ─── */
+.flow {
+  background: #0d0f15;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+.flow pre {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  white-space: pre;
+  overflow-x: auto;
+}
+.flow pre .hl { color: var(--accent); }
+.flow pre .gr { color: var(--green); }
+.flow pre .or { color: var(--orange); }
+.flow pre .rd { color: var(--red); }
+.flow pre .pr { color: var(--purple); }
+
+/* ─── CODE BLOCKS ─── */
+.code-block {
+  background: #0d0f15;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 16px 0;
+  overflow: hidden;
+}
+.code-header {
+  padding: 8px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.code-header .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.3;
+}
+.code-block pre {
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  overflow-x: auto;
+}
+.code-block pre .kw { color: var(--purple); }
+.code-block pre .fn { color: var(--accent); }
+.code-block pre .str { color: var(--green); }
+.code-block pre .cm { color: var(--text-muted); font-style: italic; }
+.code-block pre .num { color: var(--orange); }
+
+/* ─── STEP FLOW ─── */
+.steps {
+  position: relative;
+  padding-left: 32px;
+  margin: 20px 0;
+}
+.steps::before {
+  content: '';
+  position: absolute;
+  left: 11px; top: 4px; bottom: 4px;
+  width: 2px;
+  background: var(--border);
+}
+.step {
+  position: relative;
+  margin-bottom: 20px;
+}
+.step::before {
+  content: '';
+  position: absolute;
+  left: -25px; top: 8px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+}
+.step.done::before { background: var(--green); border-color: var(--green); }
+.step h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.step p { font-size: 13.5px; color: var(--text-dim); }
+
+/* ─── CALLOUT ─── */
+.callout {
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin: 16px 0;
+  font-size: 14px;
+  display: flex;
+  gap: 12px;
+}
+.callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.callout-blue {
+  background: var(--accent-glow);
+  border: 1px solid rgba(59,130,246,0.2);
+}
+.callout-green {
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+}
+.callout-orange {
+  background: var(--orange-bg);
+  border: 1px solid var(--orange-border);
+}
+.callout-red {
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+}
+
+/* ─── CHANNEL CARD ─── */
+.channel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.channel-header {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.channel-header:hover { background: var(--bg-card-hover); }
+.channel-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.channel-header h3 { font-size: 16px; font-weight: 600; flex: 1; }
+.channel-chevron {
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: transform 0.2s;
+}
+.channel-card.open .channel-chevron { transform: rotate(180deg); }
+.channel-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.channel-card.open .channel-body { max-height: 5000px; }
+.channel-content {
+  padding: 0 24px 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+/* ─── METRIC GRID ─── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.metric-box {
+  background: rgba(30,35,48,0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  text-align: center;
+}
+.metric-box .val {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.metric-box .label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ─── SERVICE ITEM ─── */
+.svc-list { margin: 16px 0; }
+.svc-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  font-size: 14px;
+  transition: border-color 0.15s;
+}
+.svc-item:hover { border-color: #2a3040; }
+.svc-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.svc-item .svc-name { font-weight: 600; flex: 1; }
+.svc-item .svc-action { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  .sidebar { width: 85vw; }
+  .main { padding: 24px 16px 80px; }
+  .card { padding: 20px; }
+  .card-grid { grid-template-columns: 1fr; }
+  table { font-size: 12px; }
+  th, td { padding: 8px 10px; }
+  .flow pre, .code-block pre { font-size: 11px; }
+}
+
+@media print {
+  .toolbar, .sidebar, .sidebar-overlay { display: none !important; }
+  .main { margin-top: 0; padding: 20px; }
+  .card, .channel-card { break-inside: avoid; }
+  body { background: white; color: #1a1a1a; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="hamburger" id="menuBtn" aria-label="Open menu">☰</button>
+  <span class="toolbar-title">Cloud<span>CFO</span>.ai</span>
+  <span class="toolbar-badge">New User Onboarding Architecture</span>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="overlay"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h2>📑 Navigation</h2>
+    <button class="sidebar-close" id="closeBtn">✕</button>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-label">Overview</div>
+      <a class="nav-item" data-target="overview">
+        <span class="nav-icon">📊</span> Channels Recap
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">I — Discovery Channels</div>
+      <a class="nav-item nav-parent" data-target="notif-access">
+        <span class="nav-icon">📱</span> 1.1 Mobile App Capture
+        <span class="nav-dot green"></span>
+      </a>
+      <a class="nav-item nav-child" data-target="notif-limits">
+        <span class="nav-icon">⚠️</span> Notification Limits
+      </a>
+      <a class="nav-item nav-child" data-target="hybrid-approach">
+        <span class="nav-icon">🔀</span> Hybrid 3-Layer Strategy
+      </a>
+      <a class="nav-item nav-child nav-layer" data-target="mediastore">
+        <span class="nav-icon">L2</span> MediaStore Scanner
+      </a>
+      <a class="nav-item nav-child nav-layer" data-target="smart-prompt">
+        <span class="nav-icon">L3</span> Smart Prompt Fallback
+      </a>
+      <a class="nav-item nav-child" data-target="capture-stats">
+        <span class="nav-icon">📈</span> Capture Statistics
+      </a>
+
+      <a class="nav-item nav-parent" data-target="autodiscovery">
+        <span class="nav-icon">🔍</span> 1.2 Auto-Discovery (OAuth)
+        <span class="nav-dot green"></span>
+      </a>
+      <a class="nav-item nav-child" data-target="gmail-flow">
+        <span class="nav-icon">📧</span> Gmail
+      </a>
+      <a class="nav-item nav-child" data-target="outlook-flow">
+        <span class="nav-icon">📬</span> Outlook
+      </a>
+      <a class="nav-item nav-child" data-target="gdrive-flow">
+        <span class="nav-icon">📁</span> Google Drive
+      </a>
+      <a class="nav-item nav-child" data-target="dropbox-flow">
+        <span class="nav-icon">📦</span> Dropbox
+      </a>
+      <a class="nav-item nav-child" data-target="onedrive-flow">
+        <span class="nav-icon">☁️</span> OneDrive
+      </a>
+      <a class="nav-item nav-child" data-target="slack-flow">
+        <span class="nav-icon">💬</span> Slack
+      </a>
+      <a class="nav-item nav-child" data-target="teams-flow">
+        <span class="nav-icon">🟦</span> Teams
+      </a>
+
+      <a class="nav-item nav-parent" data-target="forwarding">
+        <span class="nav-icon">↗️</span> 1.3 Forwarding Channels
+        <span class="nav-dot orange"></span>
+      </a>
+      <a class="nav-item nav-child" data-target="whatsapp-fwd">
+        <span class="nav-icon">💚</span> WhatsApp
+      </a>
+      <a class="nav-item nav-child" data-target="telegram-fwd">
+        <span class="nav-icon">✈️</span> Telegram
+      </a>
+      <a class="nav-item nav-child" data-target="email-fwd">
+        <span class="nav-icon">📮</span> Email Forwarding
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">II — Infrastructure</div>
+      <a class="nav-item" data-target="vps-services">
+        <span class="nav-icon">🖥️</span> VPS Services Updates
+        <span class="nav-dot purple"></span>
+      </a>
+      <a class="nav-item" data-target="provisioning">
+        <span class="nav-icon">⚙️</span> Automated Provisioning
+      </a>
+      <a class="nav-item" data-target="n8n-confirm">
+        <span class="nav-icon">✅</span> n8n Node Confirmation
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Architecture Specification v2.0</div>
+    <h1>New User <span>Onboarding</span> Architecture</h1>
+    <p>Complete auto-discovery channel architecture, process flows, database updates, and automation for every new CloudCFO subscriber.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION: OVERVIEW RECAP                      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="overview">
+    <span class="section-anchor"></span>
+    <div class="section-label">Overview</div>
+    <h2>Discovery Channels Recap</h2>
+    <p>Summary of all user receipt capture methods, their user experience, and development effort.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>User Experience</th>
+            <th>Dev. Effort</th>
+            <th>Type</th>
+            <th>n8n Nodes</th>
+            <th>Per-User Storage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>📱 Mobile Notification Access</strong></td>
+            <td>Fully automatic (0 taps) — 3-layer hybrid</td>
+            <td><span class="badge badge-orange">High</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>Auth token</td>
+          </tr>
+          <tr>
+            <td style="padding-left: 32px; color: var(--text-dim);">↳ Layer 1: Notification text</td>
+            <td style="color: var(--text-dim);">Vendor + amount (always captured)</td>
+            <td></td>
+            <td><span class="badge badge-green" style="font-size:10px;">100%</span></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="padding-left: 32px; color: var(--text-dim);">↳ Layer 2: MediaStore scan</td>
+            <td style="color: var(--text-dim);">Full image from gallery (automatic)</td>
+            <td></td>
+            <td><span class="badge badge-green" style="font-size:10px;">~60%</span></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="padding-left: 32px; color: var(--text-dim);">↳ Layer 3: Smart prompt</td>
+            <td style="color: var(--text-dim);">User shares receipt (1 tap fallback)</td>
+            <td></td>
+            <td><span class="badge badge-orange" style="font-size:10px;">+25%</span></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><strong>📧 Gmail OAuth</strong></td>
+            <td>Fully automatic</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>OAuth token</td>
+          </tr>
+          <tr>
+            <td><strong>📬 Outlook OAuth</strong></td>
+            <td>Fully automatic</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>OAuth token</td>
+          </tr>
+          <tr>
+            <td><strong>📁 Google Drive</strong></td>
+            <td>Fully automatic (entire Drive watched)</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>OAuth token</td>
+          </tr>
+          <tr>
+            <td><strong>📦 Dropbox</strong></td>
+            <td>Fully automatic</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>OAuth token</td>
+          </tr>
+          <tr>
+            <td><strong>☁️ OneDrive</strong></td>
+            <td>Fully automatic</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>OAuth token</td>
+          </tr>
+          <tr>
+            <td><strong>💬 Slack</strong></td>
+            <td>Fully automatic</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>OAuth token</td>
+          </tr>
+          <tr>
+            <td><strong>🟦 Microsoft Teams</strong></td>
+            <td>Fully automatic</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-green">Auto</span></td>
+            <td>1 webhook</td>
+            <td>OAuth token</td>
+          </tr>
+          <tr>
+            <td><strong>💚 WhatsApp</strong></td>
+            <td>Manual (forward)</td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td><span class="badge badge-orange">Forward</span></td>
+            <td>1 webhook</td>
+            <td>Phone mapping</td>
+          </tr>
+          <tr>
+            <td><strong>✈️ Telegram</strong></td>
+            <td>Manual (forward)</td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td><span class="badge badge-orange">Forward</span></td>
+            <td>1 trigger</td>
+            <td>chat_id mapping</td>
+          </tr>
+          <tr>
+            <td><strong>📮 Email Forwarding</strong></td>
+            <td>Set once, auto after</td>
+            <td><span class="badge badge-green">Very Low</span></td>
+            <td><span class="badge badge-blue">Semi-auto</span></td>
+            <td>1 IMAP trigger</td>
+            <td>Email mapping</td>
+          </tr>
+          <tr>
+            <td><strong>🌐 Browser Extension</strong></td>
+            <td>Semi-automatic</td>
+            <td><span class="badge badge-orange">Medium</span></td>
+            <td><span class="badge badge-blue">Semi-auto</span></td>
+            <td>1 webhook</td>
+            <td>Auth token</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="val">12</div>
+        <div class="label">Total Channels</div>
+      </div>
+      <div class="metric-box">
+        <div class="val">~12</div>
+        <div class="label">n8n Nodes Total</div>
+      </div>
+      <div class="metric-box">
+        <div class="val">0</div>
+        <div class="label">Nodes Added Per User</div>
+      </div>
+      <div class="metric-box">
+        <div class="val">∞</div>
+        <div class="label">Users Supported</div>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">✅</span>
+      <div><strong>Confirmed:</strong> No n8n node is ever created or modified when a new user signs up. All channels use shared webhook endpoints. Only the database is updated with new user credentials/tokens.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION 1.1: NOTIFICATION ACCESS             -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="notif-access">
+    <span class="section-anchor"></span>
+    <div class="section-label">Section 1.1</div>
+    <h2>📱 Mobile App with Notification Access</h2>
+    <p>A native mobile app that uses a <strong>3-layer hybrid approach</strong> to maximize receipt capture: Notification Listener + MediaStore Scanner + Smart Prompt fallback.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3><span class="emoji">🤖</span> Android</h3>
+        <p>Full notification access via NotificationListenerService API. Combined with MediaStore scanning for full-quality image recovery. Achieves <strong>85%+ full-detail capture rate</strong>.</p>
+        <span class="badge badge-green">✅ Fully Supported</span>&nbsp;
+        <span class="badge badge-blue">3-Layer Hybrid</span>
+      </div>
+      <div class="card">
+        <h3><span class="emoji">🍎</span> iOS</h3>
+        <p>Apple does NOT allow reading other apps' notifications. Only Share Extension (manual 1-tap) and Shortcuts (limited automation) are possible.</p>
+        <span class="badge badge-red">❌ Notification Access Blocked</span>&nbsp;
+        <span class="badge badge-orange">⚠️ Share Extension Only</span>
+      </div>
+    </div>
+
+    <h3 style="margin: 24px 0 8px; font-size: 16px;">Apps Monitored (Android)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Source App</th><th>What Gets Captured</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>WhatsApp</td><td>Shared receipts, payment confirmations</td><td>Uber sends receipt via WhatsApp</td></tr>
+          <tr><td>Gmail / Outlook</td><td>Email receipt notifications</td><td>Amazon order confirmation email</td></tr>
+          <tr><td>Uber, Lyft, Bolt</td><td>Trip receipt notifications</td><td>"Your trip receipt: $24.50"</td></tr>
+          <tr><td>DoorDash, UberEats</td><td>Food order receipts</td><td>Order completed: $22.40</td></tr>
+          <tr><td>Amazon, eBay</td><td>Purchase confirmations</td><td>"Your order has shipped"</td></tr>
+          <tr><td>Bank apps</td><td>Transaction alerts</td><td>"$45.00 charged at Shell"</td></tr>
+          <tr><td>PayPal, Venmo</td><td>Payment confirmations</td><td>"You paid $30 to John"</td></tr>
+          <tr><td>SMS</td><td>Text receipts, bank alerts</td><td>"Purchase of $89 at Best Buy"</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- NOTIFICATION LIMITS                          -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="notif-limits">
+    <span class="section-anchor"></span>
+    <div class="section-label">Critical Limitation</div>
+    <h2>⚠️ What Notifications Actually Contain</h2>
+    <p>The NotificationListenerService is <strong>sandboxed</strong>. It can only read what Android puts IN the notification. It <strong>cannot</strong> reach back into WhatsApp, Gmail, or any other app to download the original file.</p>
+
+    <div class="card" style="border-color: var(--red-border);">
+      <h3 style="color: var(--red);"><span class="emoji">🚫</span> Notification Access ≠ App Access</h3>
+      <p style="margin-top: 8px;">CloudCFO <strong>cannot</strong> open WhatsApp, navigate to a conversation, and download the full receipt image. It can only read the notification bubble content.</p>
+    </div>
+
+    <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────────┐
+│  WhatsApp Notification Arrives                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  <span class="gr">WHAT CLOUDCFO CAN ACCESS:</span>              <span class="rd">WHAT IT CANNOT ACCESS:</span>  │
+│  ─────────────────────────              ─────────────────────── │
+│                                                                  │
+│  <span class="gr">✅ Title text</span>                          <span class="rd">❌ Full-resolution image</span> │
+│     "Uber"                              <span class="rd">❌ Original PDF file</span>     │
+│                                         <span class="rd">❌ WhatsApp chat history</span> │
+│  <span class="gr">✅ Body text</span>                           <span class="rd">❌ Other messages</span>        │
+│     "Your trip receipt: $24.50"         <span class="rd">❌ App internal storage</span>  │
+│                                         <span class="rd">❌ Full email body</span>       │
+│  <span class="gr">✅ Thumbnail image</span> (compressed)        <span class="rd">❌ Email attachments</span>     │
+│     ~320×320px LOW quality              <span class="rd">❌ Any app's database</span>    │
+│                                                                  │
+│  <span class="gr">✅ Large icon</span> (small avatar)                                    │
+│     ~64×64px                                                     │
+│                                                                  │
+│  <span class="gr">✅ Package name</span> (which app sent it)                              │
+│     "com.whatsapp"                                               │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">Image Quality Comparison</h3>
+    <div class="card-grid">
+      <div class="card" style="border-color: var(--green-border);">
+        <h3 style="color: var(--green);"><span class="emoji">✅</span> Original Receipt (inside app)</h3>
+        <p style="font-family: var(--mono); font-size: 13px; margin-top: 8px; color: var(--text-dim);">
+          1200×2400px — Full quality<br>
+          All text readable by OCR<br>
+          Vendor, items, amounts, tax, payment method<br>
+          ✅ OCR success rate: 95%+
+        </p>
+      </div>
+      <div class="card" style="border-color: var(--red-border);">
+        <h3 style="color: var(--red);"><span class="emoji">❌</span> Notification Thumbnail</h3>
+        <p style="font-family: var(--mono); font-size: 13px; margin-top: 8px; color: var(--text-dim);">
+          320×320px — Compressed JPEG<br>
+          Text blurry and unreadable<br>
+          Details not visible<br>
+          ❌ OCR success rate: ~10%
+        </p>
+      </div>
+    </div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">What CAN Be Extracted from Notification Text Alone</h3>
+    <div class="card-grid">
+      <div class="card" style="border-color: var(--green-border); background: var(--green-bg);">
+        <h3>✅ Extractable</h3>
+        <p style="font-size: 14px; margin-top: 8px;">
+          <strong>Vendor name</strong> — from app name or notification title<br>
+          <strong>Amount</strong> — "$24.50" parsed from text<br>
+          <strong>Category</strong> — inferred from app (Uber = Transport)<br>
+          <strong>Date/time</strong> — notification timestamp<br>
+          <strong>Currency</strong> — detected from symbol
+        </p>
+      </div>
+      <div class="card" style="border-color: var(--red-border); background: var(--red-bg);">
+        <h3>❌ Not Extractable</h3>
+        <p style="font-size: 14px; margin-top: 8px;">
+          <strong>Itemized breakdown</strong> — line items<br>
+          <strong>Payment method</strong> — Visa •1234<br>
+          <strong>Full address / route</strong><br>
+          <strong>Tax details</strong> — subtotal vs tax<br>
+          <strong>Receipt image</strong> — for record keeping
+        </p>
+      </div>
+    </div>
+
+    <div class="callout callout-red">
+      <span class="callout-icon">⚠️</span>
+      <div><strong>Problem:</strong> Notification text gives you a <strong>partial receipt</strong> (vendor + amount), but not a <strong>complete receipt</strong> for bookkeeping. You need the full image for OCR. This is why the <strong>Hybrid 3-Layer Approach</strong> below is essential.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- HYBRID 3-LAYER APPROACH                      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="hybrid-approach">
+    <span class="section-anchor"></span>
+    <div class="section-label">Solution</div>
+    <h2>🔀 Hybrid 3-Layer Capture Approach</h2>
+    <p>Combines three methods to achieve <strong>85%+ full-quality receipt capture</strong> with near-zero user effort, and <strong>100% partial capture</strong> (vendor + amount always captured).</p>
+
+    <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     <span class="hl">HYBRID 3-LAYER RECEIPT CAPTURE</span>                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  WhatsApp notification: "Uber receipt: $24.50" + thumbnail                  │
+│         │                                                                    │
+│         ▼                                                                    │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │ <span class="hl">LAYER 1: Notification Listener</span>  (Automatic — Background)              ││
+│  │                                                                         ││
+│  │ • Captures notification TEXT: vendor name, amount, timestamp            ││
+│  │ • Creates a PARTIAL receipt record with available data                  ││
+│  │ • Gets thumbnail image (low quality — NOT usable for OCR)              ││
+│  │ • Flags record as <span class="or">"needs_full_image"</span>                                  ││
+│  │ • Notes: app=com.whatsapp, timestamp=14:34:00                          ││
+│  └──────────────────────────┬──────────────────────────────────────────────┘│
+│                             │                                                │
+│                             ▼                                                │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │ <span class="gr">LAYER 2: MediaStore Scanner</span>  (Automatic — Background, 2-5s delay)      ││
+│  │                                                                         ││
+│  │ • Many apps (WhatsApp, Telegram) auto-save images to phone gallery     ││
+│  │ • CloudCFO queries Android MediaStore for images saved ±10s of notif   ││
+│  │ • If FULL QUALITY image found → attach to receipt record              ││
+│  │ • Upload full image to CloudCFO backend for OCR                        ││
+│  │ • Status → <span class="gr">"complete"</span>                                                  ││
+│  │                                                                         ││
+│  │ <span class="gr">Success rate: ~60% of receipts</span> (apps that save to gallery)             ││
+│  └──────────────────────────┬──────────────────────────────────────────────┘│
+│                             │                                                │
+│                        FOUND?                                                │
+│                     ┌────┴────┐                                             │
+│                    YES        NO                                             │
+│                     │         │                                              │
+│         ┌───────────┘         └───────────┐                                 │
+│         ▼                                 ▼                                 │
+│  ┌──────────────────┐    ┌──────────────────────────────────────────────┐   │
+│  │ <span class="gr">DONE!</span>             │    │ <span class="pr">LAYER 3: Smart Prompt</span>  (Semi-auto — 1 tap)     │   │
+│  │                  │    │                                              │   │
+│  │ Full image       │    │ CloudCFO shows notification to user:        │   │
+│  │ uploaded to      │    │                                              │   │
+│  │ backend, OCR     │    │ ┌──────────────────────────────────────────┐│   │
+│  │ extracts all     │    │ │ 💰 CloudCFO detected: Uber $24.50       ││   │
+│  │ details.         │    │ │                                          ││   │
+│  │                  │    │ │ Tap to attach full receipt for           ││   │
+│  │ User did         │    │ │ complete bookkeeping records             ││   │
+│  │ NOTHING.         │    │ │                                          ││   │
+│  │                  │    │ │ [<span class="gr">Attach Receipt</span>]  [<span class="or">Skip — Text Only</span>]  ││   │
+│  └──────────────────┘    │ └──────────────────────────────────────────┘│   │
+│                          │                                              │   │
+│                          │ If "Attach" → Share picker opens → user     │   │
+│                          │ selects receipt → full quality uploaded      │   │
+│                          │                                              │   │
+│                          │ If "Skip" → text-only record kept           │   │
+│                          │ (vendor + amount still captured)             │   │
+│                          └──────────────────────────────────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">Layer Summary</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Method</th>
+            <th>Automatic?</th>
+            <th>Gets Full Image?</th>
+            <th>Data Quality</th>
+            <th>Coverage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-blue">Layer 1</span></td>
+            <td>Notification text extraction</td>
+            <td style="color: var(--green);">✅ Fully</td>
+            <td style="color: var(--red);">❌ Text + thumbnail only</td>
+            <td>Partial (vendor + amount)</td>
+            <td><strong>100%</strong> of receipts</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">Layer 2</span></td>
+            <td>MediaStore gallery scan</td>
+            <td style="color: var(--green);">✅ Fully</td>
+            <td style="color: var(--green);">✅ Full quality</td>
+            <td>Complete (OCR works)</td>
+            <td><strong>~60%</strong> of receipts</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-purple">Layer 3</span></td>
+            <td>Smart prompt (1 tap)</td>
+            <td style="color: var(--orange);">⚠️ 1 user tap</td>
+            <td style="color: var(--green);">✅ Full quality</td>
+            <td>Complete (user-provided)</td>
+            <td><strong>~25%</strong> more (of 40% remaining)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-blue">
+      <span class="callout-icon">💡</span>
+      <div><strong>n8n Integration:</strong> The mobile app is just another input channel to the <strong>same n8n webhook endpoint</strong>. Zero n8n modifications needed. The app POSTs to <code>/api/v2/documents/upload</code> with the user's auth token, just like the API channel. The <code>source</code> field is set to <code>"mobile_notification"</code>, <code>"mobile_mediastore"</code>, or <code>"mobile_share"</code> depending on which layer captured the receipt.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- MEDIASTORE SCANNER                           -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="mediastore">
+    <span class="section-anchor"></span>
+    <div class="section-label">Layer 2 — Deep Dive</div>
+    <h2>🔎 MediaStore Scanner</h2>
+    <p>The secret weapon. Many messaging apps (WhatsApp, Telegram) automatically save received images to the phone's gallery. CloudCFO exploits this to recover full-quality receipt images <strong>without any user action</strong>.</p>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">How It Works</h3>
+    <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────────┐
+│  <span class="hl">MEDIASTORE SCANNER — AUTOMATIC FULL-IMAGE RECOVERY</span>             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  <span class="cm">Apps auto-save images to known gallery paths:</span>                  │
+│                                                                  │
+│  WhatsApp saves to:                                              │
+│  <span class="gr">/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images/</span>    │
+│                                                                  │
+│  Telegram saves to:                                              │
+│  <span class="gr">/Telegram/Telegram Images/</span>                                     │
+│                                                                  │
+│  When notification arrives at <span class="hl">14:34:00</span>:                         │
+│                                                                  │
+│  1. CloudCFO notes timestamp: <span class="hl">14:34:00</span>                          │
+│  2. CloudCFO notes source app: <span class="pr">com.whatsapp</span>                     │
+│  3. Waits <span class="or">2-5 seconds</span> (for file to be written to disk)           │
+│  4. Queries Android MediaStore:                                  │
+│                                                                  │
+│     <span class="pr">SELECT _data, date_added, _size</span>                               │
+│     <span class="pr">FROM MediaStore.Images</span>                                        │
+│     <span class="pr">WHERE date_added >= (14:34:00 - 5 seconds)</span>                    │
+│     <span class="pr">AND   date_added <= (14:34:00 + 10 seconds)</span>                   │
+│     <span class="pr">ORDER BY date_added DESC</span>                                      │
+│     <span class="pr">LIMIT 1</span>                                                       │
+│                                                                  │
+│  5. If image found near timestamp:                               │
+│     → <span class="gr">Full quality image available! (1200×2400px)</span>                  │
+│     → Upload to CloudCFO backend for OCR                        │
+│     → Receipt record status → "complete"                        │
+│                                                                  │
+│  6. If NOT found:                                                │
+│     → <span class="or">Trigger Layer 3: Smart Prompt</span>                               │
+│     → Ask user to share manually                                │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">App Gallery Save Behavior</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>App</th><th>Auto-Saves to Gallery?</th><th>Default Path</th><th>MediaStore Works?</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>WhatsApp</td>
+            <td><span class="badge badge-green">✅ Yes (default ON)</span></td>
+            <td><code>WhatsApp/Media/WhatsApp Images/</code></td>
+            <td style="color: var(--green);">✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Telegram</td>
+            <td><span class="badge badge-green">✅ Yes (configurable)</span></td>
+            <td><code>Telegram/Telegram Images/</code></td>
+            <td style="color: var(--green);">✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Gmail</td>
+            <td><span class="badge badge-red">❌ No (must download)</span></td>
+            <td>N/A — attachments not auto-saved</td>
+            <td style="color: var(--red);">❌ No</td>
+          </tr>
+          <tr>
+            <td>Uber</td>
+            <td><span class="badge badge-red">❌ No</span></td>
+            <td>N/A — in-app only</td>
+            <td style="color: var(--red);">❌ No</td>
+          </tr>
+          <tr>
+            <td>Amazon</td>
+            <td><span class="badge badge-red">❌ No</span></td>
+            <td>N/A — in-app only</td>
+            <td style="color: var(--red);">❌ No</td>
+          </tr>
+          <tr>
+            <td>Bank apps</td>
+            <td><span class="badge badge-orange">⚠️ Some (screenshot)</span></td>
+            <td><code>Screenshots/</code></td>
+            <td style="color: var(--orange);">⚠️ If user screenshots</td>
+          </tr>
+          <tr>
+            <td>SMS</td>
+            <td><span class="badge badge-green">✅ MMS images saved</span></td>
+            <td><code>Messages/</code></td>
+            <td style="color: var(--green);">✅ Yes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="code-card" onclick="this.classList.toggle('open')">
+      <div class="code-card-header">
+        <h4><span class="hicon">🤖</span> Android Implementation</h4>
+        <span class="badge badge-purple">Kotlin</span>
+        <span class="code-card-chevron">▼</span>
+      </div>
+      <div class="code-card-body">
+        <div class="code-block">
+      <div class="code-header"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Kotlin — MediaStoreScanner.kt</div>
+      <pre><span class="kw">suspend fun</span> <span class="fn">findRecentImage</span>(
+    context: Context,
+    notificationTimestamp: Long,  <span class="cm">// milliseconds</span>
+    sourcePackage: String
+): Uri? {
+    <span class="kw">val</span> contentResolver = context.contentResolver
+    
+    <span class="cm">// Look for images saved within ±10 seconds of notification</span>
+    <span class="kw">val</span> windowStart = (notificationTimestamp / <span class="num">1000</span>) - <span class="num">5</span>
+    <span class="kw">val</span> windowEnd   = (notificationTimestamp / <span class="num">1000</span>) + <span class="num">10</span>
+    
+    <span class="kw">val</span> selection = <span class="str">"${MediaStore.Images.Media.DATE_ADDED} >= ? "</span> +
+                   <span class="str">"AND ${MediaStore.Images.Media.DATE_ADDED} <= ?"</span>
+    <span class="kw">val</span> selectionArgs = arrayOf(
+        windowStart.toString(),
+        windowEnd.toString()
+    )
+    
+    <span class="kw">val</span> cursor = contentResolver.<span class="fn">query</span>(
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+        arrayOf(MediaStore.Images.Media._ID,
+                MediaStore.Images.Media.DATE_ADDED,
+                MediaStore.Images.Media.SIZE),
+        selection,
+        selectionArgs,
+        <span class="str">"${MediaStore.Images.Media.DATE_ADDED} DESC"</span>
+    )
+    
+    cursor?.<span class="fn">use</span> {
+        <span class="kw">if</span> (it.moveToFirst()) {
+            <span class="kw">val</span> id = it.getLong(
+                it.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+            )
+            <span class="kw">return</span> ContentUris.<span class="fn">withAppendedId</span>(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id
+            )
+            <span class="cm">// → Full quality image URI ready for upload!</span>
+        }
+    }
+    
+    <span class="kw">return null</span>  <span class="cm">// No matching image → trigger Layer 3</span>
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-card" onclick="this.classList.toggle('open')">
+      <div class="code-card-header">
+        <h4><span class="hicon">🔐</span> Required Android Permissions</h4>
+        <span class="badge badge-orange">AndroidManifest.xml</span>
+        <span class="code-card-chevron">▼</span>
+      </div>
+      <div class="code-card-body">
+        <div class="code-block">
+      <div class="code-header"><span class="dot"></span><span class="dot"></span><span class="dot"></span> AndroidManifest.xml</div>
+      <pre><span class="cm">&lt;!-- Notification access (Layer 1) --&gt;</span>
+<span class="kw">&lt;uses-permission</span> android:name=<span class="str">"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"</span> <span class="kw">/&gt;</span>
+
+<span class="cm">&lt;!-- MediaStore access (Layer 2) --&gt;</span>
+<span class="cm">&lt;!-- Android 13+ (API 33) --&gt;</span>
+<span class="kw">&lt;uses-permission</span> android:name=<span class="str">"android.permission.READ_MEDIA_IMAGES"</span> <span class="kw">/&gt;</span>
+<span class="cm">&lt;!-- Android 12 and below --&gt;</span>
+<span class="kw">&lt;uses-permission</span> android:name=<span class="str">"android.permission.READ_EXTERNAL_STORAGE"</span>
+    android:maxSdkVersion=<span class="str">"32"</span> <span class="kw">/&gt;</span>
+
+<span class="cm">&lt;!-- Network (upload to CloudCFO) --&gt;</span>
+<span class="kw">&lt;uses-permission</span> android:name=<span class="str">"android.permission.INTERNET"</span> <span class="kw">/&gt;</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SMART PROMPT FALLBACK                        -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="smart-prompt">
+    <span class="section-anchor"></span>
+    <div class="section-label">Layer 3 — Deep Dive</div>
+    <h2>🔔 Smart Prompt Fallback</h2>
+    <p>When MediaStore scan finds no matching image (apps like Uber, Amazon, Gmail that don't auto-save to gallery), CloudCFO shows a <strong>smart notification</strong> prompting the user to share the receipt with a single tap.</p>
+
+    <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────────┐
+│  <span class="hl">SMART PROMPT — USER NOTIFICATION</span>                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Layer 2 MediaStore scan returned: <span class="rd">null</span> (no image found)         │
+│         │                                                        │
+│         ▼                                                        │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │  CloudCFO sends its OWN notification:                      │ │
+│  │                                                            │ │
+│  │  ┌──────────────────────────────────────────────────────┐ │ │
+│  │  │ 💰 <span class="hl">CloudCFO</span>                                2:34 PM │ │ │
+│  │  │                                                      │ │ │
+│  │  │  Receipt detected: <span class="gr">Uber — $24.50</span>                   │ │ │
+│  │  │                                                      │ │ │
+│  │  │  Tap to attach the full receipt image for            │ │ │
+│  │  │  complete bookkeeping records.                       │ │ │
+│  │  │                                                      │ │ │
+│  │  │  [<span class="gr">📎 Attach Receipt</span>]        [<span class="or">Skip</span>]               │ │ │
+│  │  └──────────────────────────────────────────────────────┘ │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│         │                                                        │
+│    ┌────┴─────────┐                                             │
+│    │              │                                              │
+│  <span class="gr">Attach</span>          <span class="or">Skip</span>                                           │
+│    │              │                                              │
+│    ▼              ▼                                              │
+│  ┌──────────┐  ┌──────────────────────────────────────────────┐ │
+│  │ Android  │  │ Keep text-only record:                       │ │
+│  │ Share    │  │                                              │ │
+│  │ Picker   │  │ Vendor: Uber                                │ │
+│  │ opens    │  │ Amount: $24.50                               │ │
+│  │          │  │ Date: Jan 8, 2025                            │ │
+│  │ User     │  │ Source: notification_text                    │ │
+│  │ selects  │  │ Image: <span class="rd">none</span>                                  │ │
+│  │ receipt  │  │ Status: <span class="or">partial</span>                                │ │
+│  │          │  │                                              │ │
+│  │ Full     │  │ <span class="or">Still useful!</span> Vendor + amount captured.     │ │
+│  │ quality  │  │ Can be matched against bank statement later. │ │
+│  │ uploaded │  └──────────────────────────────────────────────┘ │
+│  └──────────┘                                                    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">Smart Prompt Behavior</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Feature</th><th>Implementation</th></tr></thead>
+        <tbody>
+          <tr><td>Prompt timing</td><td>Shown 5-10 seconds after notification (after MediaStore scan fails)</td></tr>
+          <tr><td>De-duplication</td><td>Don't prompt for same vendor twice in 5 minutes</td></tr>
+          <tr><td>Quiet hours</td><td>Batch prompts if between 10 PM – 7 AM, show summary in morning</td></tr>
+          <tr><td>Smart grouping</td><td>If 3+ receipts pending, show one grouped notification</td></tr>
+          <tr><td>Auto-expire</td><td>Remove prompt after 24 hours, keep text-only record</td></tr>
+          <tr><td>User preferences</td><td>User can disable prompts entirely (Layers 1+2 still work)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- CAPTURE STATISTICS                           -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="capture-stats">
+    <span class="section-anchor"></span>
+    <div class="section-label">Expected Results</div>
+    <h2>📈 Realistic Capture Statistics</h2>
+    <p>Expected results for a typical CloudCFO user processing 100 receipts per month.</p>
+
+    <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────────┐
+│  <span class="hl">100 receipts received on user's phone</span>                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  <span class="hl">Layer 1 — Notification Text</span>                                    │
+│  Captures basic data from ALL receipts:    <span class="gr">100 / 100</span>  (always)  │
+│  → Vendor + amount extracted               <span class="gr">███████████████████</span> 100% │
+│                                                                  │
+│  <span class="gr">Layer 2 — MediaStore Scan</span>                                      │
+│  Finds full-quality image automatically:   <span class="gr">~60 / 100</span>            │
+│  → Full image for OCR                      <span class="gr">████████████</span><span class="or">░░░░░░░</span>  60% │
+│                                                                  │
+│  <span class="pr">Layer 3 — Smart Prompt</span> (for remaining 40)                       │
+│  User taps "Attach":                       <span class="gr">~25 / 40</span>             │
+│  User taps "Skip":                         <span class="or">~15 / 40</span>             │
+│                                                                  │
+│  ═══════════════════════════════════════                         │
+│  <span class="hl">FINAL RESULTS</span>                                                  │
+│  ═══════════════════════════════════════                         │
+│                                                                  │
+│  <span class="gr">Full detail</span> (image + OCR):                   <span class="gr">85 / 100</span>         │
+│  <span class="gr">█████████████████</span><span class="or">░░░</span>  <span class="gr">85%</span>                                        │
+│                                                                  │
+│  <span class="or">Basic data only</span> (vendor + amount):            <span class="or">15 / 100</span>         │
+│  <span class="or">███</span><span class="rd">░░░░░░░░░░░░░░░░░</span>  <span class="or">15%</span>                                        │
+│                                                                  │
+│  <span class="rd">Lost / missed</span>:                                <span class="gr">0 / 100</span>          │
+│  <span class="rd">░░░░░░░░░░░░░░░░░░░░</span>  <span class="gr">0%</span>                                         │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="val" style="color: var(--green);">100%</div>
+        <div class="label">Receipts Detected</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" style="color: var(--green);">85%</div>
+        <div class="label">Full Image Captured</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" style="color: var(--orange);">15%</div>
+        <div class="label">Text-Only Records</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" style="color: var(--green);">0%</div>
+        <div class="label">Receipts Lost</div>
+      </div>
+    </div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">User Effort Comparison</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Method</th><th>User Actions / 100 Receipts</th><th>Full-Detail Capture</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Manual forwarding (current)</strong></td>
+            <td style="color: var(--red);"><strong>500 taps</strong> (5 steps × 100)</td>
+            <td>~70% (user forgets some)</td>
+          </tr>
+          <tr>
+            <td><strong>Hybrid 3-Layer (new)</strong></td>
+            <td style="color: var(--green);"><strong>~25 taps</strong> (Layer 3 only, 1 tap each)</td>
+            <td>85% full + 15% partial</td>
+          </tr>
+          <tr>
+            <td><strong>Hybrid with prompts disabled</strong></td>
+            <td style="color: var(--green);"><strong>0 taps</strong> (Layers 1+2 only)</td>
+            <td>60% full + 40% partial</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">n8n Backend Integration</h3>
+    <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────────────────────┐
+│             <span class="hl">HOW ALL 3 LAYERS CONNECT TO CLOUDCFO BACKEND</span>                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  EXISTING CHANNELS:              NEW MOBILE CHANNELS:                       │
+│                                                                              │
+│  WhatsApp ────┐                  ┌──── Layer 1: <span class="hl">mobile_notification</span>       │
+│  Telegram ────┤                  │     (text + thumbnail)                   │
+│  Email ───────┤                  │                                          │
+│  API Upload ──┤                  ├──── Layer 2: <span class="gr">mobile_mediastore</span>         │
+│  Google Drive─┤                  │     (full-quality gallery image)         │
+│  Gmail OAuth──┤                  │                                          │
+│               │                  ├──── Layer 3: <span class="pr">mobile_share</span>               │
+│               │                  │     (user shared via prompt)             │
+│               │                  │                                          │
+│               ▼                  ▼                                          │
+│         ┌─────────────────────────────────────────┐                         │
+│         │                                         │                         │
+│         │   <span class="hl">n8n Webhook: /api/v2/documents/upload</span>  │                         │
+│         │   (SINGLE NODE — serves ALL channels)   │                         │
+│         │                                         │                         │
+│         │   Body: {                               │                         │
+│         │     user_id: "uuid",                    │                         │
+│         │     source: "<span class="gr">mobile_mediastore</span>",       │                         │
+│         │     file: binary_data,                  │                         │
+│         │     metadata: {                         │                         │
+│         │       layer: 2,                         │                         │
+│         │       original_app: "com.whatsapp",     │                         │
+│         │       notification_text: "Uber $24.50", │                         │
+│         │       capture_method: "gallery_scan"    │                         │
+│         │     }                                   │                         │
+│         │   }                                     │                         │
+│         │                                         │                         │
+│         └──────────────────┬──────────────────────┘                         │
+│                            │                                                 │
+│                            ▼                                                 │
+│            Same pipeline: RabbitMQ → OCR → AI → Store → Sync               │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">✅</span>
+      <div><strong>Zero n8n changes required.</strong> All three mobile layers POST to the same webhook. The <code>source</code> and <code>metadata.layer</code> fields tell the backend which capture method was used, useful for analytics but not affecting processing.</div>
+    </div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">New User Onboarding for Mobile App</h3>
+    <div class="steps">
+      <div class="step done"><h4>1. User installs CloudCFO app from Play Store</h4><p>Standard app installation, user signs in with CloudCFO credentials.</p></div>
+      <div class="step done"><h4>2. App requests Notification Access permission (Layer 1)</h4><p>Android redirects to system settings → user toggles CloudCFO ON. Required for Layer 1.</p></div>
+      <div class="step done"><h4>3. App requests Media/Storage permission (Layer 2)</h4><p>Standard Android permission dialog for READ_MEDIA_IMAGES. Required for MediaStore scanning.</p></div>
+      <div class="step done"><h4>4. PostgreSQL updated</h4><p><code>INSERT INTO user_channels (user_id, channel_type, config, active) VALUES ($1, 'mobile_notification', '{"platform":"android","device_id":"...","layers":[1,2,3]}', true)</code></p></div>
+      <div class="step done"><h4>5. Redis updated</h4><p>Rate limits initialized: <code>user:{id}:mobile:rate_limit</code>, preferences: <code>user:{id}:mobile:prompt_enabled = true</code></p></div>
+      <div class="step"><h4>6. Background service starts — all 3 layers active</h4><p>Notification listener + MediaStore scanner + Smart prompt. All future receipts captured automatically.</p></div>
+    </div>
+
+    <div class="callout callout-orange">
+      <span class="callout-icon">⚠️</span>
+      <div><strong>iOS Alternative:</strong> Since Apple blocks notification reading AND MediaStore access, iOS users get a <strong>Share Extension</strong> only. When viewing a receipt in any app, they tap Share → CloudCFO. This requires one tap per receipt but is the best possible iOS experience. Layer 1 and Layer 2 are <strong>Android-exclusive</strong>.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION 1.2: AUTO-DISCOVERY (OAuth)          -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="autodiscovery">
+    <span class="section-anchor"></span>
+    <div class="section-label">Section 1.2</div>
+    <h2>🔍 Auto-Discovery Channels (OAuth)</h2>
+    <p>Fully automatic receipt capture via OAuth authorization. User connects once, CloudCFO monitors forever. Each channel uses <strong>1 shared n8n webhook</strong> and stores <strong>1 OAuth token per user</strong> in PostgreSQL.</p>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">✅</span>
+      <div><strong>Confirmed Architecture:</strong> 1,000 users × 7 OAuth channels = <strong>7 n8n webhook nodes</strong> (not 7,000). Database stores 7,000 OAuth tokens (~7 MB). No n8n node creation needed per user.</div>
+    </div>
+
+    <div class="code-card" onclick="this.classList.toggle('open')">
+      <div class="code-card-header">
+        <h4><span class="hicon">🐘</span> Shared OAuth Database Schema</h4>
+        <span class="badge badge-blue">PostgreSQL</span>
+        <span class="code-card-chevron">▼</span>
+      </div>
+      <div class="code-card-body">
+        <div class="code-block">
+      <div class="code-header"><span class="dot"></span><span class="dot"></span><span class="dot"></span> PostgreSQL — user_oauth_tokens</div>
+      <pre><span class="kw">CREATE TABLE</span> <span class="fn">user_oauth_tokens</span> (
+    id            <span class="kw">SERIAL PRIMARY KEY</span>,
+    user_id       <span class="kw">UUID REFERENCES</span> users(user_id) <span class="kw">NOT NULL</span>,
+    provider      <span class="kw">VARCHAR</span>(<span class="num">50</span>) <span class="kw">NOT NULL</span>,    <span class="cm">-- 'gmail','outlook','gdrive','dropbox','onedrive','slack','teams'</span>
+    
+    <span class="cm">-- OAuth Tokens</span>
+    access_token      <span class="kw">TEXT NOT NULL</span>,
+    refresh_token     <span class="kw">TEXT NOT NULL</span>,
+    token_expires_at  <span class="kw">TIMESTAMP NOT NULL</span>,
+    scopes            <span class="kw">TEXT</span>[],
+    
+    <span class="cm">-- Push Notification / Watch IDs</span>
+    watch_channel_id   <span class="kw">VARCHAR</span>(<span class="num">255</span>),     <span class="cm">-- Google Drive / OneDrive watch ID</span>
+    subscription_id    <span class="kw">VARCHAR</span>(<span class="num">255</span>),     <span class="cm">-- Graph API subscription ID</span>
+    watch_expires_at   <span class="kw">TIMESTAMP</span>,          <span class="cm">-- Must renew periodically</span>
+    change_page_token  <span class="kw">VARCHAR</span>(<span class="num">255</span>),     <span class="cm">-- Google Drive changes.list page token</span>
+    
+    <span class="cm">-- Metadata</span>
+    created_at    <span class="kw">TIMESTAMP DEFAULT NOW</span>(),
+    updated_at    <span class="kw">TIMESTAMP DEFAULT NOW</span>(),
+    last_sync_at  <span class="kw">TIMESTAMP</span>,
+    status        <span class="kw">VARCHAR</span>(<span class="num">20</span>) <span class="kw">DEFAULT</span> <span class="str">'active'</span>,
+    
+    <span class="kw">UNIQUE</span>(user_id, provider)
+);
+
+<span class="kw">CREATE INDEX</span> idx_oauth_provider ON user_oauth_tokens(provider, status);
+<span class="kw">CREATE INDEX</span> idx_oauth_watch ON user_oauth_tokens(watch_expires_at);</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- GMAIL -->
+    <div class="channel-card open" id="gmail-flow">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: var(--red-bg); border: 1px solid var(--red-border);">📧</div>
+        <h3>Gmail Auto-Discovery</h3>
+        <span class="badge badge-green">OAuth + Pub/Sub</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">Monitors user's Gmail inbox for receipt emails from known senders (Uber, Amazon, airlines, etc.). Fully automatic after one-time OAuth consent.</p>
+          
+          <h4 style="margin-bottom: 12px;">Complete Process Flow</h4>
+          <div class="steps">
+            <div class="step done">
+              <h4>1. Consent Flow (One-time)</h4>
+              <p>User clicks "Connect Gmail" in CloudCFO dashboard → Redirected to Google OAuth consent screen → User approves "Read your Gmail messages" scope → Google returns authorization code.</p>
+            </div>
+            <div class="step done">
+              <h4>2. Token Exchange</h4>
+              <p>CloudCFO backend exchanges auth code for <code>access_token</code> + <code>refresh_token</code>. Tokens are stored in PostgreSQL <code>user_oauth_tokens</code> table with provider='gmail'.</p>
+            </div>
+            <div class="step done">
+              <h4>3. PostgreSQL Update</h4>
+              <p><code>INSERT INTO user_oauth_tokens (user_id, provider, access_token, refresh_token, token_expires_at, scopes)</code> — stores user's Gmail credentials securely.</p>
+            </div>
+            <div class="step done">
+              <h4>4. Set Up Gmail Watch (Push Notification)</h4>
+              <p>CloudCFO calls <code>POST gmail.googleapis.com/gmail/v1/users/me/watch</code> with the user's token. Topic: <code>projects/cloudcfo/topics/gmail-notifications</code>. This tells Google: "notify my webhook when this user gets new email."</p>
+            </div>
+            <div class="step done">
+              <h4>5. Redis Cache</h4>
+              <p>Initialize <code>user:{id}:gmail:last_history_id</code> to track which emails have been processed. Rate limits set.</p>
+            </div>
+            <div class="step">
+              <h4>6. Push Notifications Arrive (Automatic, forever)</h4>
+              <p>When user receives email → Google Pub/Sub sends notification to CloudCFO's <strong>single webhook</strong> → n8n identifies user by email → fetches email using stored OAuth token → checks if receipt → processes.</p>
+            </div>
+          </div>
+
+          <div class="flow"><pre>
+<span class="cm">New email arrives in user's Gmail inbox</span>
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">Google Pub/Sub</span> → CloudCFO Webhook                        │
+│                                                            │
+│  POST https://api.cloudcfo.ai/webhooks/gmail               │
+│  Body: {                                                   │
+│    "message": {                                            │
+│      "data": "<span class="gr">base64({emailAddress: user@gmail.com})</span>"    │
+│    }                                                       │
+│  }                                                         │
+└────────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">n8n Webhook Node</span> (SINGLE NODE for ALL Gmail users)       │
+│                                                            │
+│  1. Decode payload → get <span class="gr">user@gmail.com</span>                    │
+│  2. Query PostgreSQL: <span class="pr">SELECT access_token                  │
+│     FROM user_oauth_tokens                                 │
+│     WHERE provider='gmail'                                 │
+│     AND user_id = (SELECT user_id FROM users               │
+│                    WHERE email = 'user@gmail.com')</span>        │
+│  3. If token expired → refresh using refresh_token         │
+│  4. Call Gmail API with token to fetch new emails          │
+│  5. Filter for receipt-like emails (known senders list)    │
+│  6. Extract attachments / content                          │
+│  7. Send to RabbitMQ processing queue                      │
+└────────────────────────────────────────────────────────────┘
+</pre></div>
+
+          <div class="callout callout-blue">
+            <span class="callout-icon">🔄</span>
+            <div><strong>Watch Renewal:</strong> Gmail watches expire after 7 days. A scheduled n8n workflow (cron) renews all active watches weekly. Still only 1 n8n node — queries all users from DB and renews in a loop.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTLOOK -->
+    <div class="channel-card" id="outlook-flow">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(0,120,212,0.1); border: 1px solid rgba(0,120,212,0.25);">📬</div>
+        <h3>Outlook / Microsoft 365 Auto-Discovery</h3>
+        <span class="badge badge-green">Graph API + Subscriptions</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">Monitors user's Outlook inbox via Microsoft Graph API change notifications. Same pattern as Gmail but using Microsoft's ecosystem.</p>
+          
+          <div class="steps">
+            <div class="step done">
+              <h4>1. Consent Flow</h4>
+              <p>User clicks "Connect Outlook" → Microsoft OAuth consent screen → Approves <code>Mail.Read</code> scope → Auth code returned.</p>
+            </div>
+            <div class="step done">
+              <h4>2. Token Exchange + PostgreSQL</h4>
+              <p>Exchange code for tokens → <code>INSERT INTO user_oauth_tokens (..., provider='outlook', ...)</code></p>
+            </div>
+            <div class="step done">
+              <h4>3. Create Graph API Subscription</h4>
+              <p><code>POST graph.microsoft.com/v1.0/subscriptions</code> — Subscribe to <code>/me/mailFolders/inbox/messages</code> with changeType <code>created</code>. Notification URL: <code>https://api.cloudcfo.ai/webhooks/outlook</code></p>
+            </div>
+            <div class="step done">
+              <h4>4. Store subscription_id in PostgreSQL</h4>
+              <p>Graph API returns a subscription ID — stored for renewal (subscriptions expire in 3 days for mail).</p>
+            </div>
+            <div class="step">
+              <h4>5. Notifications Arrive Automatically</h4>
+              <p>New email → Microsoft sends change notification to webhook → n8n identifies user by subscription_id → fetches email with token → processes receipt.</p>
+            </div>
+          </div>
+
+          <div class="flow"><pre>
+<span class="cm">New email arrives in user's Outlook inbox</span>
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">Microsoft Graph API</span> → CloudCFO Webhook                   │
+│                                                            │
+│  POST https://api.cloudcfo.ai/webhooks/outlook             │
+│  Body: {                                                   │
+│    "value": [{                                             │
+│      "subscriptionId": "<span class="gr">sub-abc-123</span>",                     │
+│      "resourceData": { "id": "<span class="gr">message-xyz</span>" }               │
+│    }]                                                      │
+│  }                                                         │
+└────────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">n8n Webhook Node</span> (SINGLE NODE)                          │
+│                                                            │
+│  1. Extract subscriptionId → <span class="pr">lookup user_id in DB</span>          │
+│  2. Get user's OAuth token                                 │
+│  3. Fetch email: <span class="fn">GET graph.microsoft.com/.../messages/{id}</span> │
+│  4. Check if receipt → Process                             │
+└────────────────────────────────────────────────────────────┘
+</pre></div>
+
+          <div class="callout callout-orange">
+            <span class="callout-icon">🔄</span>
+            <div><strong>Subscription Renewal:</strong> Graph API mail subscriptions expire every <strong>3 days</strong>. A cron workflow must <code>PATCH .../subscriptions/{id}</code> to renew. More frequent than Gmail's 7-day cycle.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOOGLE DRIVE -->
+    <div class="channel-card" id="gdrive-flow">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(66,133,244,0.1); border: 1px solid rgba(66,133,244,0.25);">📁</div>
+        <h3>Google Drive Auto-Discovery</h3>
+        <span class="badge badge-green">OAuth + Changes Watch API</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">Monitors the user's <strong>entire Google Drive</strong> for new receipt-like files. User drops receipts into <strong>any folder</strong> — via phone, desktop, or web — and CloudCFO auto-detects and processes them. No dedicated folder needed.</p>
+
+          <div class="callout callout-green" style="margin-bottom: 20px;">
+            <span class="callout-icon">✅</span>
+            <div><strong>Why entire Drive?</strong> Zero friction for users — no need to remember a special folder. Receipts saved from phone camera roll, browser downloads, email attachments, or any workflow are captured automatically. CloudCFO uses smart backend filtering to process only receipt-like files (images + PDFs) and ignores everything else.</div>
+          </div>
+          
+          <div class="steps">
+            <div class="step done">
+              <h4>1. OAuth Consent</h4>
+              <p>User clicks "Connect Google Drive" → Google OAuth consent screen → Approves <code>drive.readonly</code> scope → Auth code returned → Tokens stored in PostgreSQL.</p>
+            </div>
+            <div class="step done">
+              <h4>2. Get Start Page Token</h4>
+              <p>Call <code>GET drive.googleapis.com/drive/v3/changes/startPageToken</code> to get the current state marker. Store in PostgreSQL: <code>change_page_token</code> column. This ensures CloudCFO only processes files added <strong>after</strong> onboarding, not the user's entire history.</p>
+            </div>
+            <div class="step done">
+              <h4>3. Set Up Changes Watch (Entire Drive)</h4>
+              <p><code>POST drive.googleapis.com/drive/v3/changes/watch</code> with unique <code>channel_id: "watch-user-{uuid}"</code> and address: <code>https://api.cloudcfo.ai/webhooks/gdrive</code>. This watches <strong>all changes</strong> across the user's entire Drive — no folder restriction.</p>
+            </div>
+            <div class="step done">
+              <h4>4. PostgreSQL Update</h4>
+              <p>Store <code>watch_channel_id</code>, <code>watch_resource_id</code>, <code>watch_expires_at</code>, and <code>change_page_token</code> in <code>user_oauth_tokens</code>.</p>
+            </div>
+            <div class="step">
+              <h4>5. New Files Detected Automatically</h4>
+              <p>User saves any file anywhere in Drive → Google sends push notification → n8n webhook receives it → calls <code>changes.list</code> to get changed files → filters for receipt-like MIME types → downloads and processes matching files.</p>
+            </div>
+          </div>
+
+          <div class="flow"><pre>
+<span class="cm">User saves receipt.pdf to ANY folder in Google Drive</span>
+<span class="cm">(phone upload, browser download, desktop sync — any method)</span>
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">Google Drive Changes API</span> → Push Notification              │
+│                                                            │
+│  POST https://api.cloudcfo.ai/webhooks/gdrive              │
+│  Headers:                                                  │
+│    X-Goog-Channel-ID: <span class="gr">watch-user-abc123</span>   ← Identifies user │
+│    X-Goog-Resource-State: <span class="or">change</span>                         │
+│                                                            │
+│  <span class="cm">Note: Webhook only says "something changed" —</span>             │
+│  <span class="cm">not WHICH file. Must call changes.list to find out.</span>       │
+└────────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">n8n Webhook Node</span> (SINGLE NODE for ALL Google Drive users) │
+│                                                            │
+│  1. Extract Channel-ID → <span class="pr">lookup user_id + token in DB</span>     │
+│  2. Get stored <span class="fn">change_page_token</span> from PostgreSQL            │
+│  3. Call: <span class="fn">GET changes/list?pageToken={token}</span>               │
+│     → Returns list of changed files since last check       │
+│  4. <span class="hl">FILTER: Only process receipt-like files</span>                │
+│     ✅ image/jpeg, image/png, image/webp                  │
+│     ✅ application/pdf                                     │
+│     ❌ application/vnd.google-apps.document (ignore)      │
+│     ❌ application/vnd.google-apps.spreadsheet (ignore)   │
+│     ❌ application/vnd.google-apps.presentation (ignore)  │
+│     ❌ Folders, shortcuts, forms (ignore)                 │
+│     ❌ Files &lt; 10KB or &gt; 25MB (ignore)                   │
+│  5. Download matching files via Drive API                  │
+│  6. Store in MinIO → send to RabbitMQ pipeline             │
+│  7. Update <span class="fn">change_page_token</span> in PostgreSQL for next poll    │
+└────────────────────────────────────────────────────────────┘
+</pre></div>
+
+          <h4 style="margin: 20px 0 12px; font-size: 15px; color: var(--text);">Smart Backend Filtering</h4>
+          <p style="color: var(--text-dim); margin-bottom: 12px; font-size: 14px;">Since we watch the entire Drive, CloudCFO receives notifications for <strong>all</strong> file activity (edits, shares, moves, etc.). The n8n node filters aggressively to only process actual receipts:</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Check</th><th>Rule</th><th>Reason</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span style="color:var(--green);">✅</span> MIME type</td>
+                  <td>Only <code>image/*</code> and <code>application/pdf</code></td>
+                  <td>Receipts are images or PDFs, not Google Docs</td>
+                </tr>
+                <tr>
+                  <td><span style="color:var(--green);">✅</span> New files only</td>
+                  <td><code>createdTime == modifiedTime</code></td>
+                  <td>Ignore edits to existing files — only new uploads</td>
+                </tr>
+                <tr>
+                  <td><span style="color:var(--green);">✅</span> File size</td>
+                  <td>Between 10KB and 25MB</td>
+                  <td>Skip tiny icons and huge non-receipt files</td>
+                </tr>
+                <tr>
+                  <td><span style="color:var(--green);">✅</span> Not trashed</td>
+                  <td><code>trashed == false</code></td>
+                  <td>Skip deleted files</td>
+                </tr>
+                <tr>
+                  <td><span style="color:var(--orange);">⚡</span> De-duplication</td>
+                  <td>Check file hash against processed files in DB</td>
+                  <td>Skip if same receipt already processed from another channel</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout-orange" style="margin-top: 16px;">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>Noise level:</strong> An active user may trigger 20-50 change notifications/day (doc edits, shares, moves). After filtering, typically only 1-5 are actual receipts. The filtering is lightweight (metadata check only — no file download until confirmed as receipt-like), so the overhead is minimal.</div>
+          </div>
+
+          <div class="callout callout-blue" style="margin-top: 12px;">
+            <span class="callout-icon">🔄</span>
+            <div><strong>Watch Renewal:</strong> Google Drive <code>changes.watch</code> channels expire after a <strong>maximum of 7 days</strong>. A scheduled n8n cron job renews all active watches weekly. Still only 1 n8n node — queries all users from DB and renews in a loop.</div>
+          </div>
+
+          <h4 style="margin: 20px 0 12px; font-size: 15px; color: var(--text);">How Users Drop Receipts</h4>
+          <p style="color: var(--text-dim); margin-bottom: 12px; font-size: 14px;">With entire-drive monitoring, every method "just works":</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Method</th><th>How It Works</th><th>Detected?</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>📱 Phone camera</td>
+                  <td>Take photo of paper receipt → auto-syncs to Google Photos/Drive</td>
+                  <td style="color: var(--green);"><strong>✅ Auto</strong></td>
+                </tr>
+                <tr>
+                  <td>📱 Phone "Save to Drive"</td>
+                  <td>In any app, tap Share → Save to Google Drive (any folder)</td>
+                  <td style="color: var(--green);"><strong>✅ Auto</strong></td>
+                </tr>
+                <tr>
+                  <td>💻 Browser download</td>
+                  <td>Download PDF receipt → drag to Google Drive in browser</td>
+                  <td style="color: var(--green);"><strong>✅ Auto</strong></td>
+                </tr>
+                <tr>
+                  <td>🖥️ Desktop sync</td>
+                  <td>Save receipt to Google Drive folder on desktop (Drive for Desktop app)</td>
+                  <td style="color: var(--green);"><strong>✅ Auto</strong></td>
+                </tr>
+                <tr>
+                  <td>📧 Gmail attachment</td>
+                  <td>Open email receipt → "Save to Drive" button in Gmail</td>
+                  <td style="color: var(--green);"><strong>✅ Auto</strong></td>
+                </tr>
+                <tr>
+                  <td>📸 Google Lens scan</td>
+                  <td>Scan receipt with Google Lens → Save to Drive</td>
+                  <td style="color: var(--green);"><strong>✅ Auto</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="code-card" onclick="event.stopPropagation(); this.classList.toggle('open')" style="margin-top: 20px;">
+            <div class="code-card-header">
+              <h4><span class="hicon">🔧</span> changes.watch Setup &amp; changes.list Processing</h4>
+              <span class="badge badge-purple">API Flow</span>
+              <span class="code-card-chevron">▼</span>
+            </div>
+            <div class="code-card-body">
+              <div class="code-block">
+                <div class="code-header"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Google Drive Changes API — Setup &amp; Processing</div>
+                <pre><span class="cm">// ─── STEP 1: Get starting page token (during onboarding) ───</span>
+
+<span class="kw">GET</span> https://www.googleapis.com/drive/v3/changes/startPageToken
+Authorization: Bearer {user_access_token}
+
+<span class="cm">Response:</span> { <span class="str">"startPageToken"</span>: <span class="str">"4285"</span> }
+<span class="cm">→ Store "4285" in PostgreSQL: user_oauth_tokens.change_page_token</span>
+
+
+<span class="cm">// ─── STEP 2: Create changes.watch channel ───</span>
+
+<span class="kw">POST</span> https://www.googleapis.com/drive/v3/changes/watch?pageToken=<span class="num">4285</span>
+Authorization: Bearer {user_access_token}
+Content-Type: application/json
+
+{
+  <span class="str">"id"</span>:      <span class="str">"watch-user-abc123-uuid"</span>,
+  <span class="str">"type"</span>:    <span class="str">"web_hook"</span>,
+  <span class="str">"address"</span>: <span class="str">"https://api.cloudcfo.ai/webhooks/gdrive"</span>,
+  <span class="str">"token"</span>:   <span class="str">"user_id=abc123"</span>  <span class="cm">// custom token for user lookup</span>
+}
+
+<span class="cm">Response:</span>
+{
+  <span class="str">"kind"</span>:       <span class="str">"api#channel"</span>,
+  <span class="str">"id"</span>:         <span class="str">"watch-user-abc123-uuid"</span>,
+  <span class="str">"resourceId"</span>: <span class="str">"abc_resource_123"</span>,
+  <span class="str">"expiration"</span>: <span class="num">1735689600000</span>  <span class="cm">// ~7 days max</span>
+}
+<span class="cm">→ Store watch_channel_id, watch_resource_id, expiration in DB</span>
+
+
+<span class="cm">// ─── STEP 3: When webhook fires (file changed anywhere) ───</span>
+
+<span class="cm">Google sends to https://api.cloudcfo.ai/webhooks/gdrive:</span>
+  <span class="kw">Headers:</span>
+    X-Goog-Channel-ID:     <span class="gr">watch-user-abc123-uuid</span>
+    X-Goog-Channel-Token:  <span class="gr">user_id=abc123</span>
+    X-Goog-Resource-State:  <span class="or">change</span>
+
+<span class="cm">// ─── STEP 4: n8n fetches changed files ───</span>
+
+<span class="kw">GET</span> https://www.googleapis.com/drive/v3/changes?pageToken=<span class="num">4285</span>&amp;fields=*
+Authorization: Bearer {user_access_token}
+
+<span class="cm">Response:</span>
+{
+  <span class="str">"changes"</span>: [
+    {
+      <span class="str">"fileId"</span>:  <span class="str">"1sP77lasbdEw..."</span>,
+      <span class="str">"removed"</span>: <span class="kw">false</span>,
+      <span class="str">"file"</span>: {
+        <span class="str">"name"</span>:        <span class="str">"uber-receipt-jan.pdf"</span>,
+        <span class="str">"mimeType"</span>:    <span class="str">"application/pdf"</span>,      <span class="cm">// ✅ Receipt-like</span>
+        <span class="str">"size"</span>:        <span class="str">"245000"</span>,               <span class="cm">// ✅ 245KB — valid range</span>
+        <span class="str">"createdTime"</span>: <span class="str">"2025-01-08T14:34:00Z"</span>,
+        <span class="str">"trashed"</span>:     <span class="kw">false</span>                   <span class="cm">// ✅ Not trashed</span>
+      }
+    },
+    {
+      <span class="str">"fileId"</span>:  <span class="str">"8xQ12kfaMnb..."</span>,
+      <span class="str">"removed"</span>: <span class="kw">false</span>,
+      <span class="str">"file"</span>: {
+        <span class="str">"name"</span>:     <span class="str">"Project Notes"</span>,
+        <span class="str">"mimeType"</span>: <span class="str">"application/vnd.google-apps.document"</span> <span class="cm">// ❌ Skip</span>
+      }
+    }
+  ],
+  <span class="str">"newStartPageToken"</span>: <span class="str">"4290"</span>  <span class="cm">// → Save for next poll</span>
+}
+
+<span class="cm">// ─── STEP 5: Download only the receipt-like file ───</span>
+
+<span class="kw">GET</span> https://www.googleapis.com/drive/v3/files/<span class="gr">1sP77lasbdEw...</span>?alt=media
+Authorization: Bearer {user_access_token}
+<span class="cm">→ Binary PDF data → Store in MinIO → Send to RabbitMQ</span></pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- DROPBOX -->
+    <div class="channel-card" id="dropbox-flow">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(0,97,255,0.1); border: 1px solid rgba(0,97,255,0.25);">📦</div>
+        <h3>Dropbox Auto-Discovery</h3>
+        <span class="badge badge-green">OAuth + Webhooks</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">Dropbox sends a webhook whenever files change in user's account. CloudCFO monitors a specific folder path.</p>
+          
+          <div class="steps">
+            <div class="step done"><h4>1. OAuth Consent</h4><p>User approves Dropbox OAuth → tokens stored. Scope: <code>files.metadata.read files.content.read</code></p></div>
+            <div class="step done"><h4>2. Register Webhook</h4><p>In Dropbox App Console, set webhook URL to <code>https://api.cloudcfo.ai/webhooks/dropbox</code>. One URL serves all users.</p></div>
+            <div class="step done"><h4>3. Create Folder</h4><p>Use user's token to create <code>/CloudCFO Receipts</code> folder in their Dropbox.</p></div>
+            <div class="step done"><h4>4. Store Cursor</h4><p>Call <code>/files/list_folder</code> to get initial cursor. Store in Redis: <code>user:{id}:dropbox:cursor</code></p></div>
+            <div class="step"><h4>5. Changes Detected</h4><p>Dropbox webhook sends list of <code>account_ids</code> with changes → n8n maps account_id to user → uses cursor to get new files → downloads and processes.</p></div>
+          </div>
+
+          <div class="flow"><pre>
+<span class="cm">User saves file to /CloudCFO Receipts in Dropbox</span>
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">Dropbox Webhook</span>                                          │
+│                                                            │
+│  POST https://api.cloudcfo.ai/webhooks/dropbox             │
+│  Body: {                                                   │
+│    "list_folder": {                                        │
+│      "accounts": ["<span class="gr">dbid:AAB123...</span>"]   ← User's account ID │
+│    }                                                       │
+│  }                                                         │
+└────────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">n8n Webhook Node</span> (SINGLE NODE)                          │
+│                                                            │
+│  1. For each account_id → <span class="pr">lookup user_id + token in DB</span>   │
+│  2. Get cursor from Redis                                  │
+│  3. Call <span class="fn">/files/list_folder/continue</span> with cursor          │
+│  4. Download new files in /CloudCFO Receipts               │
+│  5. Update cursor in Redis                                 │
+│  6. Process receipts                                       │
+└────────────────────────────────────────────────────────────┘
+</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ONEDRIVE -->
+    <div class="channel-card" id="onedrive-flow">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(3,131,210,0.1); border: 1px solid rgba(3,131,210,0.25);">☁️</div>
+        <h3>OneDrive Auto-Discovery</h3>
+        <span class="badge badge-green">Graph API + Subscriptions</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">Same Microsoft Graph API pattern as Outlook, but subscribing to drive changes instead of mail.</p>
+          
+          <div class="steps">
+            <div class="step done"><h4>1. OAuth Consent</h4><p>User approves <code>Files.Read</code> scope via Microsoft OAuth.</p></div>
+            <div class="step done"><h4>2. Create Folder + Subscribe</h4><p>Create "CloudCFO Receipts" folder → <code>POST graph.microsoft.com/v1.0/subscriptions</code> on <code>/me/drive/root</code> with changeType <code>updated</code>.</p></div>
+            <div class="step done"><h4>3. PostgreSQL + Redis</h4><p>Store subscription_id and delta link (cursor) for tracking changes.</p></div>
+            <div class="step"><h4>4. Changes Detected</h4><p>File added → Graph API sends notification → n8n maps subscription to user → uses delta API to find new files → downloads and processes.</p></div>
+          </div>
+
+          <div class="callout callout-orange">
+            <span class="callout-icon">🔄</span>
+            <div><strong>Subscription Renewal:</strong> OneDrive subscriptions expire after <strong>30 days</strong> (longer than mail). Monthly cron renewal.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLACK -->
+    <div class="channel-card" id="slack-flow">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(74,21,75,0.15); border: 1px solid rgba(74,21,75,0.3);">💬</div>
+        <h3>Slack Auto-Discovery</h3>
+        <span class="badge badge-green">OAuth + Events API</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">Monitors Slack channels/DMs where receipts are shared (e.g., #expenses channel). Real-time event-driven.</p>
+
+          <div class="steps">
+            <div class="step done"><h4>1. OAuth Consent</h4><p>User installs CloudCFO Slack app → approves <code>channels:history</code>, <code>files:read</code> scopes → workspace token stored.</p></div>
+            <div class="step done"><h4>2. Events API</h4><p>Slack Events API configured with URL <code>https://api.cloudcfo.ai/webhooks/slack</code>. Subscribes to <code>message</code> events.</p></div>
+            <div class="step done"><h4>3. PostgreSQL</h4><p>Store workspace token, team_id, user_id mapping.</p></div>
+            <div class="step"><h4>4. Messages with files auto-captured</h4><p>User shares receipt image in any authorized channel → Slack sends event → n8n checks for file attachments → downloads with token → processes.</p></div>
+          </div>
+
+          <div class="callout callout-green">
+            <span class="callout-icon">♾️</span>
+            <div><strong>No expiration:</strong> Slack Events API subscriptions don't expire. No renewal cron needed — events flow forever until the app is uninstalled.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEAMS -->
+    <div class="channel-card" id="teams-flow">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(80,80,200,0.1); border: 1px solid rgba(80,80,200,0.25);">🟦</div>
+        <h3>Microsoft Teams Auto-Discovery</h3>
+        <span class="badge badge-green">Graph API + Subscriptions</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">Monitors Teams chats/channels for shared receipt files. Same Graph API pattern as Outlook/OneDrive.</p>
+
+          <div class="steps">
+            <div class="step done"><h4>1. OAuth Consent</h4><p>User approves <code>Chat.Read</code>, <code>ChannelMessage.Read.All</code> scopes.</p></div>
+            <div class="step done"><h4>2. Create Subscription</h4><p><code>POST graph.microsoft.com/v1.0/subscriptions</code> on <code>/me/chats/getAllMessages</code>.</p></div>
+            <div class="step done"><h4>3. PostgreSQL</h4><p>Store subscription_id, tokens.</p></div>
+            <div class="step"><h4>4. Messages with attachments auto-captured</h4><p>File shared in chat → Graph API notification → n8n identifies user → downloads file → processes.</p></div>
+          </div>
+
+          <div class="callout callout-orange">
+            <span class="callout-icon">🔄</span>
+            <div><strong>Subscription Renewal:</strong> Teams chat subscriptions expire after <strong>60 minutes</strong> (very short!). Requires aggressive cron renewal or using long-polling as alternative.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION 1.3: FORWARDING CHANNELS             -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="forwarding">
+    <span class="section-anchor"></span>
+    <div class="section-label">Section 1.3</div>
+    <h2>↗️ Forwarding Channels (Manual / Semi-Automatic)</h2>
+    <p>For platforms that don't support OAuth auto-discovery (WhatsApp, Telegram, Signal, WeChat), CloudCFO provides a <strong>shared account/number</strong> where users forward receipts. User identification is based on sender ID.</p>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">✅</span>
+      <div><strong>Confirmed:</strong> Yes, CloudCFO can assign forwarded attachments to the correct user based on their sender phone number (WhatsApp) or chat_id (Telegram). The mapping is stored in PostgreSQL <code>user_channels</code> table.</div>
+    </div>
+
+    <!-- WHATSAPP -->
+    <div class="channel-card open" id="whatsapp-fwd">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(37,211,102,0.1); border: 1px solid rgba(37,211,102,0.25);">💚</div>
+        <h3>WhatsApp Forwarding</h3>
+        <span class="badge badge-orange">Manual Forward → Auto ID</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">CloudCFO operates ONE WhatsApp Business number. All 1,000+ users forward receipts to the same number. Sender's phone number identifies who they are.</p>
+
+          <h4 style="margin-bottom: 12px;">Architecture</h4>
+          <div class="flow"><pre>
+<span class="cm">User receives receipt on their personal WhatsApp</span>
+         │
+         │  User FORWARDS to <span class="gr">+1-888-CLOUDCFO</span> (shared number)
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">WhatsApp Business API</span> Webhook                            │
+│                                                            │
+│  POST https://api.cloudcfo.ai/webhooks/whatsapp            │
+│  {                                                         │
+│    "entry": [{                                             │
+│      "changes": [{                                         │
+│        "value": {                                          │
+│          "messages": [{                                    │
+│            "from": "<span class="gr">+15551234567</span>",  ← Sender's phone number│
+│            "type": "image",                                │
+│            "image": { "id": "media_abc123" }               │
+│          }]                                                │
+│        }                                                   │
+│      }]                                                    │
+│    }]                                                      │
+│  }                                                         │
+└────────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">n8n Webhook Node</span> (SINGLE NODE)                          │
+│                                                            │
+│  1. Extract sender phone: <span class="gr">+15551234567</span>                     │
+│  2. <span class="pr">SELECT user_id FROM user_channels                      │
+│     WHERE channel_type = 'whatsapp'                        │
+│     AND config->>'phone' = '+15551234567'</span>                 │
+│  3. If not found → Reply "Please register first"           │
+│  4. If found → Download media → Process with user_id       │
+│  5. Reply: "✅ Receipt captured: Uber $24.50"               │
+└────────────────────────────────────────────────────────────┘
+</pre></div>
+
+          <h4 style="margin: 20px 0 12px;">New User Registration for WhatsApp</h4>
+          <div class="steps">
+            <div class="step done">
+              <h4>1. User registers on CloudCFO (web/app)</h4>
+              <p>Provides phone number during signup.</p>
+            </div>
+            <div class="step done">
+              <h4>2. PostgreSQL Updated</h4>
+              <p><code>INSERT INTO user_channels (user_id, channel_type, config) VALUES ($1, 'whatsapp', '{"phone":"+15551234567"}')</code></p>
+            </div>
+            <div class="step done">
+              <h4>3. Verification (optional)</h4>
+              <p>CloudCFO sends WhatsApp message to user: "Reply YES to confirm this number." Prevents spoofing.</p>
+            </div>
+            <div class="step">
+              <h4>4. Ready</h4>
+              <p>User can now forward any receipt to the CloudCFO number. Identified automatically by phone.</p>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-header"><span class="dot"></span><span class="dot"></span><span class="dot"></span> PostgreSQL — user_channels (WhatsApp)</div>
+            <pre><span class="kw">INSERT INTO</span> <span class="fn">user_channels</span> (user_id, channel_type, config, active)
+<span class="kw">VALUES</span> (
+    <span class="str">'user-uuid-123'</span>,
+    <span class="str">'whatsapp'</span>,
+    <span class="str">'{"phone": "+15551234567", "verified": true, "registered_at": "2025-01-08"}'</span>,
+    <span class="kw">true</span>
+);</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TELEGRAM -->
+    <div class="channel-card" id="telegram-fwd">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(0,136,204,0.1); border: 1px solid rgba(0,136,204,0.25);">✈️</div>
+        <h3>Telegram Bot Forwarding</h3>
+        <span class="badge badge-orange">Manual Forward → Auto ID</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">CloudCFO runs ONE Telegram Bot (@CloudCFO_Bot). Users forward receipts to the bot. Identified by <code>chat_id</code>.</p>
+
+          <div class="flow"><pre>
+<span class="cm">User forwards receipt to @CloudCFO_Bot</span>
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">Telegram Bot API</span> Webhook                                 │
+│                                                            │
+│  {                                                         │
+│    "message": {                                            │
+│      "chat": { "id": <span class="gr">123456789</span> },    ← User's chat_id    │
+│      "from": { "id": <span class="gr">123456789</span> },                         │
+│      "document": {                                         │
+│        "file_id": "BAADBAADxx...",                         │
+│        "file_name": "receipt.pdf"                          │
+│      }                                                     │
+│    }                                                       │
+│  }                                                         │
+└────────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+┌────────────────────────────────────────────────────────────┐
+│  <span class="hl">n8n Telegram Trigger Node</span> (SINGLE NODE)                 │
+│                                                            │
+│  1. Extract chat_id: <span class="gr">123456789</span>                            │
+│  2. <span class="pr">SELECT user_id FROM user_channels                      │
+│     WHERE channel_type = 'telegram'                        │
+│     AND config->>'chat_id' = '123456789'</span>                  │
+│  3. Download file via Telegram API                         │
+│  4. Process with user_id                                   │
+│  5. Reply in chat: "✅ Receipt captured!"                   │
+└────────────────────────────────────────────────────────────┘
+</pre></div>
+
+          <h4 style="margin: 20px 0 12px;">Auto-Registration via /start</h4>
+          <p style="color: var(--text-dim); margin-bottom: 12px;">Telegram is unique — users can self-register by chatting with the bot:</p>
+          <div class="steps">
+            <div class="step done"><h4>1. User sends /start to @CloudCFO_Bot</h4><p>Bot receives chat_id automatically from Telegram.</p></div>
+            <div class="step done"><h4>2. Bot asks for email</h4><p>"Welcome! Please enter your CloudCFO email to link your account."</p></div>
+            <div class="step done"><h4>3. PostgreSQL Updated</h4><p><code>INSERT INTO user_channels (user_id, 'telegram', '{"chat_id":"123456789"}')</code></p></div>
+            <div class="step"><h4>4. Ready</h4><p>All future messages with documents are auto-processed.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMAIL FORWARDING -->
+    <div class="channel-card" id="email-fwd">
+      <span class="section-anchor"></span>
+      <div class="channel-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="channel-icon" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25);">📮</div>
+        <h3>Email Forwarding</h3>
+        <span class="badge badge-blue">Semi-Automatic</span>
+        <span class="channel-chevron">▼</span>
+      </div>
+      <div class="channel-body">
+        <div class="channel-content">
+          <p style="color: var(--text-dim); margin-bottom: 16px;">CloudCFO provides ONE inbox: <code>receipts@cloudcfo.ai</code>. Users can forward manually or set up auto-forwarding rules. Two identification methods available.</p>
+
+          <div class="card-grid">
+            <div class="card">
+              <h3>Method A: Sender Email</h3>
+              <p>User forwards from their registered email. Identified by <code>From:</code> header.</p>
+              <div class="code-block"><pre>From: <span class="gr">john@company.com</span>  ← Lookup key
+To: receipts@cloudcfo.ai
+Subject: Fwd: Your Uber Receipt</pre></div>
+            </div>
+            <div class="card">
+              <h3>Method B: Plus-Addressing</h3>
+              <p>Each user gets a unique address like <code>receipts+abc123@cloudcfo.ai</code>. More reliable.</p>
+              <div class="code-block"><pre>To: receipts+<span class="gr">abc123</span>@cloudcfo.ai
+         ↑
+  User's unique code (assigned at registration)</pre></div>
+            </div>
+          </div>
+
+          <div class="callout callout-green">
+            <span class="callout-icon">💡</span>
+            <div><strong>Set-and-Forget:</strong> Users can create an email filter in Gmail/Outlook: "If from: uber@uber.com, DoorDash, Amazon → Auto-forward to receipts+abc123@cloudcfo.ai". After this one-time setup, receipts are captured automatically forever.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION II: VPS SERVICES                     -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="vps-services">
+    <span class="section-anchor"></span>
+    <div class="section-label">Section II</div>
+    <h2>🖥️ VPS Services — Updates Per New User</h2>
+    <p>What databases and services on your two VPS servers need to be updated when a new user signs up.</p>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">Main VPS — n8n.cloudcfo.ai</h3>
+    <div class="svc-list">
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(59,130,246,0.1);">🐘</div>
+        <span class="svc-name">PostgreSQL</span>
+        <span class="badge badge-green">UPDATE REQUIRED</span>
+        <span class="svc-action">Insert: users, user_subscriptions, user_channels, api_credentials, user_oauth_tokens</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(239,68,68,0.1);">🔴</div>
+        <span class="svc-name">Redis</span>
+        <span class="badge badge-green">UPDATE REQUIRED</span>
+        <span class="svc-action">Set: rate limits, session data, preferences, cursor storage</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(245,158,11,0.1);">🪣</div>
+        <span class="svc-name">MinIO</span>
+        <span class="badge badge-green">UPDATE REQUIRED</span>
+        <span class="svc-action">Create: user bucket with /receipts, /invoices, /reports, /exports folders</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(16,185,129,0.1);">📋</div>
+        <span class="svc-name">Baserow</span>
+        <span class="badge badge-green">UPDATE REQUIRED</span>
+        <span class="svc-action">Create: user record in KB management table for pattern tracking</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(168,85,247,0.1);">🐰</div>
+        <span class="svc-name">RabbitMQ</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Shared queues — user_id in message payload</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(6,182,212,0.1);">⚡</div>
+        <span class="svc-name">n8n</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Shared workflows — user_id passed in requests</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(59,130,246,0.1);">🔍</div>
+        <span class="svc-name">Tesseract.js</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Stateless OCR service — no per-user config</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(99,102,241,0.1);">📊</div>
+        <span class="svc-name">PgAdmin</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Admin tool — no per-user config</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(239,68,68,0.1);">🔍</div>
+        <span class="svc-name">RedisInsight</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Admin tool — no per-user config</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(16,185,129,0.1);">📡</div>
+        <span class="svc-name">SSE-Server</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Channels created dynamically per request</span>
+      </div>
+    </div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">RAG VPS — rag.cloudcfo.ai</h3>
+    <div class="svc-list">
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(168,85,247,0.1);">🧠</div>
+        <span class="svc-name">Qdrant</span>
+        <span class="badge badge-orange">OPTIONAL UPDATE</span>
+        <span class="svc-action">Option A: Shared collection with user_id payload filter. Option B: Create user-specific collection.</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(59,130,246,0.1);">📄</div>
+        <span class="svc-name">Dockling</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Stateless document processing — no per-user config</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(16,185,129,0.1);">🔗</div>
+        <span class="svc-name">LangChain</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Stateless orchestration — user context passed per request</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(99,102,241,0.1);">🧲</div>
+        <span class="svc-name">BGE-Small</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Stateless embedding model — no per-user config</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(245,158,11,0.1);">🎨</div>
+        <span class="svc-name">ChromaDB</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Shared collections with metadata filtering</span>
+      </div>
+      <div class="svc-item">
+        <div class="svc-icon" style="background: rgba(6,182,212,0.1);">📈</div>
+        <span class="svc-name">Grafana</span>
+        <span class="badge badge-purple">NO UPDATE</span>
+        <span class="svc-action">Monitoring tool — no per-user config</span>
+      </div>
+    </div>
+
+    <h3 style="margin: 24px 0 12px; font-size: 16px;">Summary</h3>
+    <div class="metric-grid">
+      <div class="metric-box">
+        <div class="val" style="color: var(--green);">4</div>
+        <div class="label">Services Updated</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" style="color: var(--purple);">12</div>
+        <div class="label">Services Unchanged</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" style="color: var(--orange);">1</div>
+        <div class="label">Optional Update</div>
+      </div>
+      <div class="metric-box">
+        <div class="val" style="color: var(--green);">~50ms</div>
+        <div class="label">Provisioning Time</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION: AUTOMATED PROVISIONING              -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="provisioning">
+    <span class="section-anchor"></span>
+    <div class="section-label">Automation</div>
+    <h2>⚙️ Automated User Provisioning</h2>
+    <p>Yes, the entire process can be fully automated. A single API call provisions everything.</p>
+
+    <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────────────┐
+│                  <span class="hl">Automated Provisioning Pipeline</span>                    │
+│                                                                     │
+│  User clicks "Sign Up" on cloudcfo.ai                               │
+│         │                                                           │
+│         ▼                                                           │
+│  <span class="gr">POST /api/v1/users/provision</span>                                      │
+│  { email, name, phone, plan, channels[] }                           │
+│         │                                                           │
+│         ├──► <span class="hl">PostgreSQL</span>                                              │
+│         │    ├── INSERT users                                       │
+│         │    ├── INSERT user_subscriptions                           │
+│         │    ├── INSERT user_channels (per selected channel)        │
+│         │    └── INSERT api_credentials                             │
+│         │                                                           │
+│         ├──► <span class="rd">Redis</span>                                                   │
+│         │    ├── SET rate limits                                    │
+│         │    ├── SET session data                                   │
+│         │    └── SET preference defaults                            │
+│         │                                                           │
+│         ├──► <span class="or">MinIO</span>                                                   │
+│         │    ├── CREATE bucket user-{uuid}                         │
+│         │    └── CREATE folders /receipts /invoices /reports        │
+│         │                                                           │
+│         ├──► <span class="pr">Baserow</span>                                                 │
+│         │    └── CREATE user record in KB management               │
+│         │                                                           │
+│         ├──► <span class="pr">Qdrant</span> (optional)                                       │
+│         │    └── CREATE collection or namespace                    │
+│         │                                                           │
+│         └──► <span class="gr">OAuth Channels</span> (async, user-initiated)                  │
+│              ├── Gmail: Wait for user to click "Connect"           │
+│              ├── Drive: Wait for user to click "Connect"           │
+│              └── Each stores tokens on completion                   │
+│                                                                     │
+│  Response: { user_id, api_key, endpoints, bucket }                 │
+│         │                                                           │
+│         ▼                                                           │
+│  <span class="gr">Welcome email sent with credentials</span>                               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</pre></div>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">🤖</span>
+      <div><strong>Can this be automated via an AI agent?</strong> Yes, but an AI agent is overkill for this. A simple FastAPI microservice on <code>rag.cloudcfo.ai</code> handles it perfectly — deterministic steps, no AI reasoning needed. The provisioning service runs as a Docker container alongside your existing services. An n8n workflow can also orchestrate this via HTTP Request nodes.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION: N8N CONFIRMATION                    -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="section" id="n8n-confirm">
+    <span class="section-anchor"></span>
+    <div class="section-label">Confirmation</div>
+    <h2>✅ n8n Node Architecture Confirmation</h2>
+    <p>Final confirmation of how many n8n nodes are needed and what changes per user.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Channel</th>
+            <th>n8n Node Type</th>
+            <th>Count</th>
+            <th>Created When?</th>
+            <th>Changes Per User?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>📱 Mobile App</td>
+            <td>Webhook</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>📧 Gmail</td>
+            <td>Webhook (Pub/Sub)</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>📬 Outlook</td>
+            <td>Webhook (Graph API)</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>📁 Google Drive</td>
+            <td>Webhook</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>📦 Dropbox</td>
+            <td>Webhook</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>☁️ OneDrive</td>
+            <td>Webhook (Graph API)</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>💬 Slack</td>
+            <td>Webhook (Events API)</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>🟦 Teams</td>
+            <td>Webhook (Graph API)</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>💚 WhatsApp</td>
+            <td>Webhook</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>✈️ Telegram</td>
+            <td>Telegram Trigger</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>📮 Email Fwd</td>
+            <td>IMAP Trigger</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr>
+            <td>🌐 Browser Ext.</td>
+            <td>Webhook</td>
+            <td><strong>1</strong></td>
+            <td>Platform setup (once)</td>
+            <td style="color: var(--green);">❌ Never</td>
+          </tr>
+          <tr style="background: rgba(59,130,246,0.05);">
+            <td colspan="2"><strong>TOTAL</strong></td>
+            <td><strong>~12</strong></td>
+            <td><strong>All at platform setup</strong></td>
+            <td style="color: var(--green);"><strong>❌ NEVER</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="border-color: var(--green-border); background: var(--green-bg);">
+      <h3 style="color: var(--green);">🎯 Bottom Line</h3>
+      <p style="color: var(--text); font-size: 15px; margin-top: 8px;">
+        <strong>User #1 and User #10,000 use the exact same n8n workflows.</strong> The only difference is a few rows in PostgreSQL and Redis. No n8n nodes are ever created, modified, or deleted when users sign up or leave. The multi-tenant architecture scales infinitely through database-level user isolation.
+      </p>
+    </div>
+
+    <div class="metric-grid" style="margin-top: 20px;">
+      <div class="metric-box">
+        <div class="val">~12</div>
+        <div class="label">n8n Trigger Nodes</div>
+      </div>
+      <div class="metric-box">
+        <div class="val">0</div>
+        <div class="label">Nodes Per New User</div>
+      </div>
+      <div class="metric-box">
+        <div class="val">4</div>
+        <div class="label">DB Services Updated</div>
+      </div>
+      <div class="metric-box">
+        <div class="val">~50ms</div>
+        <div class="label">Provisioning Time</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+
+<script>
+// ─── SIDEBAR TOGGLE ───
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+const menuBtn = document.getElementById('menuBtn');
+const closeBtn = document.getElementById('closeBtn');
+
+function openSidebar() {
+  sidebar.classList.add('active');
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  sidebar.classList.remove('active');
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+menuBtn.addEventListener('click', openSidebar);
+closeBtn.addEventListener('click', closeSidebar);
+overlay.addEventListener('click', closeSidebar);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeSidebar();
+});
+
+// ─── NAV ITEM CLICK ───
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', (e) => {
+    const targetId = item.getAttribute('data-target');
+    const target = document.getElementById(targetId);
+    if (target) {
+      closeSidebar();
+      setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  });
+});
+
+// ─── ACTIVE SECTION TRACKING ───
+const sections = [];
+document.querySelectorAll('.nav-item').forEach(item => {
+  const id = item.getAttribute('data-target');
+  const el = document.getElementById(id);
+  if (el) sections.push({ id, el, nav: item });
+});
+
+function updateActiveSection() {
+  const scrollY = window.scrollY + 120;
+  let activeId = sections[0]?.id;
+
+  for (const s of sections) {
+    if (s.el.offsetTop <= scrollY) {
+      activeId = s.id;
+    }
+  }
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const activeNav = document.querySelector(`.nav-item[data-target="${activeId}"]`);
+  if (activeNav) {
+    activeNav.classList.add('active');
+    // Scroll nav item into view if sidebar is open
+    if (sidebar.classList.contains('active')) {
+      activeNav.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+}
+
+let scrollTimeout;
+window.addEventListener('scroll', () => {
+  if (scrollTimeout) cancelAnimationFrame(scrollTimeout);
+  scrollTimeout = requestAnimationFrame(updateActiveSection);
+});
+updateActiveSection();
+</script>
+</body>
+</html>
